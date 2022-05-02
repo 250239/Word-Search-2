@@ -312,9 +312,7 @@ override func render(canvas:Canvas) {
 
         renderWords(canvas:canvas, letterGrid:storage)
 
-        renderWordBankWords(canvas:canvas)
-        
-        
+        renderWordBankWords(canvas:canvas)      
     }
 
     func goodUserInput() -> String {
@@ -338,7 +336,6 @@ override func render(canvas:Canvas) {
             return (gridPointX, gridPointY)
         } 
     }
-        
 
       init() {
           // Using a meaningful name can be helpful for debugging
