@@ -282,7 +282,12 @@ class Background : RenderableEntity {
         
  */
 
-    
+override func render(canvas:Canvas) {
+        if let canvasSize = canvas.canvasSize {
+            
+        }
+    }
+  
     override func setup(canvasSize:Size, canvas:Canvas) {
 
         let canvasSize = canvas.canvasSize!
@@ -332,10 +337,6 @@ class Background : RenderableEntity {
             print(userX, userY, gridStartX, gridStartY, gridIncrX, gridIncrY, gridPointX, gridPointY)
             return (gridPointX, gridPointY)
         } 
-    }
-
-    override func render(canvas:Canvas) {
-        
     }
         
 
