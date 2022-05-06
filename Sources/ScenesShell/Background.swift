@@ -14,16 +14,20 @@ struct GridSelectionType {
 var gridSelection: [GridSelectionType] = []
 
 var storage = [[Character]]()
+var fontSize = [[Int]]()
+var fontColorCongrats = Int()
 var userInput = ""
 
-class selectTool : RenderableEntity, EntityMouseClickHandler, KeyDownHandler {
+class SelectTool : RenderableEntity, EntityMouseClickHandler, KeyDownHandler {
+
     let ellipse = Ellipse(center:Point(x:0, y:0), radiusX:30, radiusY:30, fillMode:.fillAndStroke)
     let strokeStyle = StrokeStyle(color:Color(.orange))
     let fillStyle = FillStyle(color:Color(.red))
     let lineWidth = LineWidth(width:5)
+
+    var countWordsFound = 0
     
     override func setup(canvasSize:Size, canvas:Canvas) {
-        // ... other code is here ...
         dispatcher.registerEntityMouseClickHandler(handler:self)
         dispatcher.registerKeyDownHandler(handler:self)
     }
@@ -33,47 +37,79 @@ class selectTool : RenderableEntity, EntityMouseClickHandler, KeyDownHandler {
         dispatcher.unregisterKeyDownHandler(handler:self)
     }
 
+    func background() -> Background {
+        guard let scene = scene as? MainScene else {
+            fatalError("MainScene is required to access Background")
+        }
+        return scene.backgroundLayer.background
+    }
+
     
     func onKeyDown(key:String, code:String, ctrlKey:Bool, shiftKey:Bool, altKey:Bool, metaKey:Bool) {
         let words : [String] = ["BROWN", "RED", "ORANGE", "YELLOW", "GREEN", "BLUE", "INDIGO", "VIOLET"]
-        var countWordsFound = 0
+
+        if key == "q" {
+            print("Quit out of Game")
+            exit(0)
+        }
         
         if key == "s" {
             print(userInput)
             print(gridSelection[0].x, gridSelection[0].y)
+            print(countWordsFound)
             for i in 0..<words.count {
+                print("entering for loop")
+                print(words[i])
                 if words[i] == userInput {
                     print("good word found")
+                    for j in 0..<gridSelection.count {
+                        background().changeFont(x:gridSelection[j].x, y:gridSelection[j].y, fontBig:2)
+                    }
                     countWordsFound += 1
                     userInput = ""
+                    gridSelection = []
+                    print(countWordsFound)
+                    if countWordsFound == words.count {
+                        background().congratsChange(fontColor:1)
+                        print("Congratulations! You found all the words")
+                    }
+                    break
+                } else {
+                    if i == 7 {
+                        print("incorrect word")
+                        for j in 0..<gridSelection.count {
+                            background().changeFont(x:gridSelection[j].x, y:gridSelection[j].y, fontBig:0)
+                        }
+                        gridSelection = []
+                        userInput = ""
+                    } else {
+                        print("match not found")
+                    }
                 }
-                //else {
-                //userInput = ""
-                //print("incorrect word")
-                //}
             }
         } else {
-            userInput = ""
-            print("user cancelled")
+            if key == "c" {
+                for j in 0..<gridSelection.count {
+                    background().changeFont(x:gridSelection[j].x, y:gridSelection[j].y, fontBig:0)
+                }
+                userInput = ""
+                gridSelection = []
+                print("user cancelled")
+            }
         }
     }
     
     func onEntityMouseClick(globalLocation: Point) {        
-        let b = Background()
-        let result = b.calculateGridLocation(userX:globalLocation.x, userY:(globalLocation.y + 20))
+        let result = background().calculateGridLocation(userX:globalLocation.x, userY:(globalLocation.y + 20))
         if result.0 != 999 || result.1 != 999 {
             userInput.append(storage[result.0][result.1])
             gridSelection.append(GridSelectionType(x: result.0, y: result.1))
-        }   
-    }
-         
-/*
-    override func render(canvas:Canvas) {
-        canvas.render(strokeStyle, fillStyle, lineWidth, ellipse)
         }
-        
- */
-
+        for j in 0..<gridSelection.count {
+            background().changeFont(x:gridSelection[j].x, y:gridSelection[j].y, fontBig:1)
+        }
+    }
+    
     override func boundingRect() -> Rect {
         return Rect(size: Size(width: Int.max, height: Int.max))
     }    
@@ -82,18 +118,19 @@ class selectTool : RenderableEntity, EntityMouseClickHandler, KeyDownHandler {
 
 
 class gridClass {
-
-
     
     init() {
         // Create a 15 by 15 two-dimensional array.
         // ... Use append calls.
         for _ in 0..<15 {
             var subArray = [Character]()
+            var subArrayFont = [Int]()
             for _ in 0..<15 {
                 subArray.append(" ")
+                subArrayFont.append(0)
             }
             storage.append(subArray)
+            fontSize.append(subArrayFont)
         }
     }
 
@@ -214,46 +251,108 @@ class gridClass {
 
 class Background : RenderableEntity {
 
+    let grid = gridClass()
+    
     let gridStartX = 125
     let gridIncrX = 30
     let gridStartY = 125
     let gridIncrY = 30
+
+    var text = Text(location: Point.zero, text: "")
+    var fillStyle =  FillStyle(color: Color(.orange))
+    var font: String = "25pt Arial"
+    var congratsFillStyle = FillStyle(color:Color(.white))
+    
+    func changeFont(x:Int, y:Int, fontBig:Int) {
+        fontSize[x][y] = fontBig
+    }
     
     func renderWords(canvas:Canvas, letterGrid: [[Character]]) {
 
         for i in 0..<15 {
             for j in 0..<15 {
-                let text1 = Text(location:Point(x:gridStartX + (gridIncrX * i), y:gridStartY + (gridIncrY * j)), text:"\(letterGrid[i][j])")
-                text1.font = "20pt Arial"
-                let fillStyle1 = FillStyle(color:Color(.black))
-                canvas.render(fillStyle1, text1)
+                let text = Text(location:Point(x:gridStartX + (gridIncrX * i), y:gridStartY + (gridIncrY * j)), text:"\(letterGrid[i][j])")
+                if fontSize[i][j] == 1 {
+                    text.font = "22pt Arial"
+                    fillStyle = FillStyle(color:Color(.orange))
+                } else {
+                    if fontSize[i][j] == 2 {
+                        text.font = "22pt Arial"
+                        fillStyle = FillStyle(color:Color(.green))
+                    } else {
+                        text.font = "20pt Arial"
+                        fillStyle = FillStyle(color:Color(.black))
+                    }
+                }
+                canvas.render(fillStyle, text)
             }
         }
     }
 
+    func renderScore(canvas:Canvas) {
+        let score = Text(location:Point(x:700, y:140), text:"Score:")
+        score.font = "30pt Arial"
+        let scoreFillStyle = FillStyle(color:Color(.black))
+        canvas.render(scoreFillStyle, score)
+    }
+    
+    func congratsChange(fontColor:Int) {
+        fontColorCongrats = fontColor
+    }
+
+    func renderCongratulations(canvas:Canvas) {
+
+        let congrats = Text(location:Point(x:570, y:50), text:"CONGRATS!")
+        congrats.font = "30pt Arial"
+        if fontColorCongrats == 0 {
+            congratsFillStyle = FillStyle(color:Color(.white))
+        } else {
+            congratsFillStyle = FillStyle(color:Color(.black))
+        }
+        canvas.render(congratsFillStyle, congrats)        
+    }
+    
     func renderWordBankWords(canvas:Canvas) {
-        let incrX = 1125
-        var incrY = 250
-        var incrY2 = 250
+        let incrX = 650
+        var incrY = 330
+        var incrY2 = 330
         var a = 0
         var a2 = 0
         let words : [String] = ["BROWN", "RED", "ORANGE", "YELLOW", "GREEN", "BLUE", "INDIGO", "VIOLET"]
         for _ in 0..<(words.count/2) {
             let text1 = Text(location:Point(x:incrX, y:incrY), text:"\(words[0 + a])")
-            text1.font = "25pt Arial"
+            text1.font = "20pt Arial"
             let fillStyle1 = FillStyle(color:Color(.black))
             canvas.render(fillStyle1, text1)
             a += 1
-            incrY += 100
+            incrY += 70
         }
         for _ in 4..<words.count {
-            let text2 = Text(location:Point(x:incrX + 300, y:incrY2), text:"\(words[4 + a2])")
-            text2.font = "25pt Arial"
+            let text2 = Text(location:Point(x:incrX + 150, y:incrY2), text:"\(words[4 + a2])")
+            text2.font = "20pt Arial"
             let fillStyle2 = FillStyle(color:Color(.black))
             canvas.render(fillStyle2, text2)
             a2 += 1
-            incrY2 += 100
+            incrY2 += 70
         }
+    }
+
+    func renderInstructions(canvas:Canvas) {
+
+        let instructions = Text(location:Point(x:550, y:700), text:"INSTRUCTIONS")
+        instructions.font = "20pt Arial"
+        let fillStyle3 = FillStyle(color:Color(.black))
+
+        let instructions2 = Text(location:Point(x:310, y:750), text:"Click on each letter until you have a word. Once you've clicked a whole word, press s.")
+        instructions2.font = "13pt Arial"
+        
+        let instructions3 = Text(location:Point(x:310,y:775), text:"If the word is correct, it will turn green, if not, it will return to its normal color.")
+        instructions3.font = "13pt Arial"
+
+        let instructions4 = Text(location:Point(x:310, y:800), text:"Press c if you want to clear the letters you've clicked. Press q to end the game.")
+        instructions4.font = "13pt Arial"
+        
+        canvas.render(fillStyle3, instructions, instructions2, instructions3, instructions4)
     }
         
     func renderRectangle(canvas: Canvas, rect: Rect, rInt: Int, gInt: Int, bInt: Int, widthOfLine: Int) {
@@ -262,62 +361,23 @@ class Background : RenderableEntity {
         let rectangle = Rectangle(rect: rect, fillMode:.fillAndStroke)
         canvas.render(fillStyle, lineWidth, rectangle)
     }
-/*
-    func renderRectangleRow(canvas: Canvas, rect: Rect, columns: Int) {
-        var currentRect = rect
-        for _ in 0..<columns {
-            renderRectangle(canvas: canvas, rect: currentRect)
-            currentRect.topLeft.x += currentRect.size.width
-        }
-    }
-
-    func renderRectangleGrid(canvas: Canvas, rect: Rect, columns: Int, rows: Int) {
-        var currentRect = rect
-        for _ in 0..<rows {
-            
-            renderRectangleRow(canvas: canvas, rect: currentRect, columns: columns)
-            currentRect.topLeft.y += currentRect.size.height
-        }
-        }
-        
- */
-
     
     override func setup(canvasSize:Size, canvas:Canvas) {
 
-        let canvasSize = canvas.canvasSize!
-
-        let grid = gridClass()
-        grid.placeWords()
-        grid.placeRandomLetters()
-       
         
+        let instructionRectangle = Rect(topLeft: Point(x:270, y:650), size:Size(width:830, height:200))
+        renderRectangle(canvas:canvas, rect:instructionRectangle, rInt:255, gInt: 255, bInt:255, widthOfLine:4)
         
-//        let completeBackground = Rect(topLeft:Point(x:0, y:0), size:Size(width:canvasSize.width, height: canvasSize.height))
-//        renderRectangle(canvas:canvas, rect:completeBackground, rInt:255, gInt:255, bInt:255, widthOfLine:1)
-
-        let gridEndX = gridStartX + (gridIncrX * 15)
-        let gridEndY = gridStartY + (gridIncrY * 15)
+        renderInstructions(canvas:canvas)
         
-        let gridRect = Rect(topLeft: Point(x: 1100, y: 175), size: Size(width: 500, height: 450))
+        let gridRect = Rect(topLeft: Point(x: 625, y: 275), size: Size(width: 300, height: 300))
         renderRectangle(canvas:canvas, rect:gridRect, rInt:10, gInt:150, bInt:150, widthOfLine:4)
 
-        let whiteBackground = Rect(topLeft: Point(x:gridStartX - 20, y:gridStartY - 40), size:Size(width: (gridIncrX * 15) + 30, height: (gridIncrY * 15) + 40))
-        renderRectangle(canvas:canvas, rect:whiteBackground, rInt:255, gInt:255, bInt:255, widthOfLine:4)
-
-        renderWords(canvas:canvas, letterGrid:storage)
-
         renderWordBankWords(canvas:canvas)
-        
-        
-    }
 
-    func goodUserInput() -> String {
-        return "RED"
-    }
+        grid.placeWords()
+        grid.placeRandomLetters()        
 
-    func badUserInput() -> String {
-        return "RAJKSDL"
     }
 
     func calculateGridLocation(userX:Int, userY:Int) -> (Int, Int) {
@@ -333,11 +393,21 @@ class Background : RenderableEntity {
             return (gridPointX, gridPointY)
         } 
     }
-
+    
     override func render(canvas:Canvas) {
         
+        let gridEndX = gridStartX + (gridIncrX * 15)
+        let gridEndY = gridStartY + (gridIncrY * 15)
+       
+        let whiteBackground = Rect(topLeft: Point(x:gridStartX - 20, y:gridStartY - 40), size:Size(width: (gridIncrX * 15) + 30, height: (gridIncrY * 15) + 40))
+        renderRectangle(canvas:canvas, rect:whiteBackground, rInt:255, gInt:255, bInt:255, widthOfLine:4)
+
+        renderWords(canvas:canvas, letterGrid:storage)
+
+        renderCongratulations(canvas:canvas)
+
     }
-        
+    
 
       init() {
           // Using a meaningful name can be helpful for debugging
