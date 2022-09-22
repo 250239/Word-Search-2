@@ -6,7 +6,7 @@ import Igis
      Internally, it maintains the RenderableEntities for this layer.
    */
 
-let clickThing = selectTool()
+let clickThing = SelectTool()
     
 class InteractionLayer : Layer {
     
